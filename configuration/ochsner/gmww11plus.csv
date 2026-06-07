@@ -9,7 +9,11 @@ r5,ochsner,Aktuelle.Aussentemperatur.00.000,Aktuelle Aussentemperatur,,,,0080004
 r1,ochsner,Istwert.Heizkreis.Vorlauftemp.00.002,Aktuelle Vorlauftemperatur des Heizkreises (same as 00.015),,,,77840008,,,param,,,,,,tempt,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 r5,ochsner,Warmwassertemp.aktuell.00.004,aktuelle Warmwassertemperatur,,,,00840040,,,param,,,,,,tempt,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 r1,ochsner,Vorlauftemp.Waermepumpe.TWV.00.007,Vorlauftemperatur Waermepumpe (Fuehler TWV),,,,00870042,,,param,,,,,,tempt,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-r1,ochsner,Ruecklauftemp.Waermepumpe.TWR.00.008,Ruecklauftemperatur der Waermepumpe (Fuehler TWR),,,,00880042,,,param,,,,,,tempt,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+# NOTE (GMWW10/11+ SW 06.05): TWR has NO physical return-flow sensor on this heat pump.
+# OTE3 computes TWR from operating status: approx. TQE when off, jumps ~8 C during heating.
+# Verified 2026-06-07 by comparison with DS18B20 on return pipe (9.5 C discrepancy observed).
+# Do NOT use this value for monitoring or energy calculations - it is a computed placeholder.
+#r1,ochsner,Ruecklauftemp.Waermepumpe.TWR.00.008,Ruecklauftemperatur der Waermepumpe (Fuehler TWR - computed no physical sensor),,,,00880042,,,param,,,,,,tempt,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 r1,ochsner,Vorlauftemp.Puffersp.TPO.00.015,Anlagen Vorlauftemperatur (TPO) Oben Pufferspeicher,,,,7a800010,,,param,,,,,,tempt,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 r1,ochsner,Vorlauftemp.Puffersp.TPM.00.017,Anlagen Vorlauftemperatur (TPM) Mitte Pufferspeicher,,,,7a810010,,,param,,,,,,tempt,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 r1,ochsner,Austrittstemp.Waermequelle.TQA.00.070,IST Temp. TQA,,,,00c60042,,,param,,,,,,tempt,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
@@ -28,12 +32,30 @@ r1,ochsner,Drehzahl.Waermeerzeugerpumpe.01.076,SOLL Verdichter Drehzahl,,,,01cc0
 r1,ochsner,Drehzahl.Waermequellenpumpe.01.077,Pumpe Wärmequelle,,,,7b820002,,,param,,,,,,percent,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 #______________________________,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 r1,ochsner,Aussentemperatur.Mittelwert.02.020,Aussentemperatur Mittelwert,,,,77820008,,,param,,,,,,tempt,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+# NOTE (SW 06.05): hkstatus value 23 = active heating (Heizbetrieb_aktiv).
+# SW 06.05 uses 23 for normal active heating instead of value 1 (Normal_Heizbetrieb).
+# The CDN hkstatus template does not include value 23. To get text output instead of "23",
+# add "23=Heizbetrieb_aktiv" to the hkstatus template in your local _templates.csv.
 r1,ochsner,Status.Heizkreis.02.051,Status Heizkreis,,,,77800008,,,param,,,,,,hkstatus,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 r1,ochsner,Status.Warmwasser.02.052,Status Warmwasser,,,,7980000e,,,param,,,,,,wwstatus,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 #r5,ochsner,Status.Waermepumpe.02.053,Status Waermepumpe,,,,02b50040,,,param,,,,,,hpstatus,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 r5,ochsner,Status.Waermepumpe.02.053,Status Waermepumpe,,,,02b50042,,,param,,,,,,hpstatus,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+# NOTE (SW 06.05): If cycles/hours show decode errors (ERR: invalid position in decode),
+# the CDN templates "cycles" (U3N) and "hours" may not match your firmware's TEM response.
+# SW 06.05 GMWW10/11+ TEM counter responses have 10 bytes (8-byte header + 2 value bytes).
+# Override in local _templates.csv: cycles,UIN and hours,UIN  (2-byte unsigned, no divisor).
 r1,ochsner,Waermepumpe.Schaltzyklen.02.080,Operating cycles,,,,7d850002,,,param2,,,,,,cycles,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 r1,ochsner,Waermepumpe.Betriebsstunden.02.081,Waermepumpe Betriebsstunden,,,,7d860002,,,param1,,,,,,hours,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+#______________________________,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+# OPTIONAL: Second heating circuit (HKR2) - requires HKR2 module at eBUS address 0x0a
+# Bus-ID pattern: replace last byte 0x08 (HKR1 module) with 0x0a (HKR2 module).
+# All messages below verified 2026-06-07 via FHEM/ebusd MQTT integration and
+# physical HKR2 manual mode test (mixer actuator movement confirmed).
+r1,ochsner,Status.HKR2.02.051,Status second heating circuit (HKR2),,,,7780000a,,,param,,,,,,hkstatus,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+r1,ochsner,Aussentemperatur.Mittelwert.HKR2.02.020,Outside temperature moving average via HKR2 module,,,,7782000a,,,param,,,,,,tempt,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+r1,ochsner,Raumsollwert.HKR2.01.001,Room setpoint HKR2,,,,7783000a,,,param,,,,,,tempt,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+r1,ochsner,Istwert.HKR2.Vorlauftemp.00.002,Actual supply temperature HKR2,,,,7784000a,,,param,,,,,,tempt,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+r1,ochsner,Sollwert.HKR2.Vorlauftemp.01.002,Setpoint supply temperature HKR2 (heating curve),,,,7785000a,,,param,,,,,,tempt,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 #______________________________,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 r1,ochsner,Fusspunkt.Vorlauftemp.Heizen.03.001,Fusspunkt Vorlauftemperatur Heizbetrieb,,,,03810048,,,param,,,,,,tempt,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 w,ochsner,Fusspunkt.Vorlauftemp.Heizen.03.001,Fusspunkt Vorlauftemperatur Heizbetrieb,,,,03810048,,,,,,,,,tempt,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
