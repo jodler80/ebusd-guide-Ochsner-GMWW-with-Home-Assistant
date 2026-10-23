@@ -9,13 +9,7 @@ r5,ochsner,Aktuelle.Aussentemperatur.00.000,Aktuelle Aussentemperatur,,,,0080004
 r1,ochsner,Istwert.Heizkreis.Vorlauftemp.00.002,Aktuelle Vorlauftemperatur des Heizkreises (same as 00.015),,,,77840008,,,param,,,,,,tempt,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 r5,ochsner,Warmwassertemp.aktuell.00.004,aktuelle Warmwassertemperatur,,,,00840040,,,param,,,,,,tempt,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 r1,ochsner,Vorlauftemp.Waermepumpe.TWV.00.007,Vorlauftemperatur Waermepumpe (Fuehler TWV),,,,00870042,,,param,,,,,,tempt,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-# NOTE (GMWW10/11+ SW 06.05): TWR has NO physical return-flow sensor on this heat pump.
-# In typical installations with a buffer storage (Pufferspeicher / Thermische Weiche),
-# the heat pump return-flow is not directly the heating circuit return-flow anyway.
-# OTE3 computes TWR from operating status: approx. TQE when off, jumps ~8 C during heating.
-# Verified 2026-06-07 by comparison with DS18B20 sensor on return pipe (9.5 C discrepancy).
-# Do NOT use this value for monitoring or energy calculations - it is a computed placeholder.
-#r1,ochsner,Ruecklauftemp.Waermepumpe.TWR.00.008,Ruecklauftemperatur der Waermepumpe (Fuehler TWR - computed no physical sensor),,,,00880042,,,param,,,,,,tempt,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+r1,ochsner,Ruecklauftemp.Waermepumpe.TWR.00.008,Ruecklauftemperatur der Waermepumpe (Fuehler TWR),,,,00880042,,,param,,,,,,tempt,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 r1,ochsner,Vorlauftemp.Puffersp.TPO.00.015,Anlagen Vorlauftemperatur (TPO) Oben Pufferspeicher,,,,7a800010,,,param,,,,,,tempt,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 r1,ochsner,Vorlauftemp.Puffersp.TPM.00.017,Anlagen Vorlauftemperatur (TPM) Mitte Pufferspeicher,,,,7a810010,,,param,,,,,,tempt,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 r1,ochsner,Austrittstemp.Waermequelle.TQA.00.070,IST Temp. TQA,,,,00c60042,,,param,,,,,,tempt,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
