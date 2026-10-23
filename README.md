@@ -5,6 +5,11 @@ This guide contains links to various websites. The operators themselves are resp
 I do not receive any compensation or payment for any of these links.
 
 ##
+**10/2026: Configuration verified against the OTE3 display and the TEM response header (SW 5.98).**
+`_templates.csv` now contains real template definitions; fixes for energy counters (kWh /10), switching cycles /
+operating hours (4 byte HCD), heating circuit operating mode, hot water status 8; new data points.
+Three message names changed (new Home Assistant entities) - see [TEM protocol decoding](./docs/ochsner_tem_protocol.md).
+##
 **19.02.2026: 
 Configuration gmww11plus.csv , broadcast.csv and _templates.csv updated to latest level**
 ##
@@ -104,6 +109,7 @@ The following steps provide a step by step guide to setup such an environment fr
 8) [Adjust ebusd](./docs/ebusd.md)
 9) [Create Home Assistant dashboard](./docs/home_assistant_dashboard.md)
 10) [ebusctl commands](./docs/ebusctl_commands.md)
+11) [Ochsner TEM protocol: decoding and verified parameter list](./docs/ochsner_tem_protocol.md)
 
 #
 
