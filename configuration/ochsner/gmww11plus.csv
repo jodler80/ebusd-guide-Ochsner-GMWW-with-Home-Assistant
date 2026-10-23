@@ -10,8 +10,10 @@ r1,ochsner,Istwert.Heizkreis.Vorlauftemp.00.002,Aktuelle Vorlauftemperatur des H
 r5,ochsner,Warmwassertemp.aktuell.00.004,aktuelle Warmwassertemperatur,,,,00840040,,,param,,,,,,tempt,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 r1,ochsner,Vorlauftemp.Waermepumpe.TWV.00.007,Vorlauftemperatur Waermepumpe (Fuehler TWV),,,,00870042,,,param,,,,,,tempt,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 # NOTE (GMWW10/11+ SW 06.05): TWR has NO physical return-flow sensor on this heat pump.
+# In typical installations with a buffer storage (Pufferspeicher / Thermische Weiche),
+# the heat pump return-flow is not directly the heating circuit return-flow anyway.
 # OTE3 computes TWR from operating status: approx. TQE when off, jumps ~8 C during heating.
-# Verified 2026-06-07 by comparison with DS18B20 on return pipe (9.5 C discrepancy observed).
+# Verified 2026-06-07 by comparison with DS18B20 sensor on return pipe (9.5 C discrepancy).
 # Do NOT use this value for monitoring or energy calculations - it is a computed placeholder.
 #r1,ochsner,Ruecklauftemp.Waermepumpe.TWR.00.008,Ruecklauftemperatur der Waermepumpe (Fuehler TWR - computed no physical sensor),,,,00880042,,,param,,,,,,tempt,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 r1,ochsner,Vorlauftemp.Puffersp.TPO.00.015,Anlagen Vorlauftemperatur (TPO) Oben Pufferspeicher,,,,7a800010,,,param,,,,,,tempt,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
@@ -49,6 +51,8 @@ r1,ochsner,Waermepumpe.Betriebsstunden.02.081,Waermepumpe Betriebsstunden,,,,7d8
 #______________________________,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 # OPTIONAL: Second heating circuit (HKR2) - requires HKR2 module at eBUS address 0x0a
 # Bus-ID pattern: replace last byte 0x08 (HKR1 module) with 0x0a (HKR2 module).
+# Example configuration: HKR1 = direct circuit from buffer storage (no mixer),
+#                        HKR2 = circuit with external mixer (e.g. underfloor heating).
 # All messages below verified 2026-06-07 via FHEM/ebusd MQTT integration and
 # physical HKR2 manual mode test (mixer actuator movement confirmed).
 r1,ochsner,Status.HKR2.02.051,Status second heating circuit (HKR2),,,,7780000a,,,param,,,,,,hkstatus,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
