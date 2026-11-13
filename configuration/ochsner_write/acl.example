@@ -1,0 +1,8 @@
+# ebusd access control list - use with --aclfile=/etc/ebusd/acl (file owned by root - mode 0600)
+# format: name,secret,level  (first line is a comment -> default columns name,secret,level)
+# Users listed here get the level "write" after "auth <name> <secret>" on the ebusd TCP port.
+# No entry for "mqtt" and no default entry "*" -> MQTT and anonymous clients cannot see the write messages.
+# If you want to write via MQTT (e.g. Home Assistant) add a line:  mqtt,unused,write
+#   (the value lists still protect the values - but every MQTT client on your broker can then write)
+automation,CHANGE-ME-random-hex,write
+admin,CHANGE-ME-other-random-hex,write

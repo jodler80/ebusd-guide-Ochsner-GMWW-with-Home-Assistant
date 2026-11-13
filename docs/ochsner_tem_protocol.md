@@ -2,7 +2,7 @@
 
 This page describes how the Ochsner heat pump (OTE3 controller) responds via eBUS with the TEM protocol,
 how to decode the responses yourself, and which data points have been verified. Basis: an Ochsner GMWW 10
-with OTE3 software version 5.98, ebusd 26.1, and an eBUS Adapter Shield C6 (Stick version). All values were compared with the heat pump's control panel in October 2026.
+with OTE3 software version 5.98, ebusd 26.1, and an eBUS Adapter Shield C6 (Stick version). All values were compared with the heat pump's control panel in October 2026; writing was verified in November 2026 (section 10).
 
 ## 1. Structure of a TEM Response
 
@@ -29,9 +29,9 @@ OTE3 parameter is behind a bus ID. This is how all messages of this configuratio
 | `04` | Integer | MWh, date, time |
 | `00` / `01` | Integer unsigned / signed 1 byte | Status, standard outdoor temperature |
 | `02` | On/Off | Pumps |
-| `09` | Selection (Enum) | Operating mode |
+| `09` | Selection (Enum) — bytes 4–5 are a **bitmask of the allowed codes**, not a maximum (e.g. `0xb3` = 0/1/4/5/7) | Operating mode |
 | `4d` / `8d` | Setting value, divisor 10 | Offset, heating limit, setpoint temperatures |
-| `c1` | Command | Mixer heating circuit 2 |
+| `c1` | Command, signed (+100 / 0 / −100) | Mixer heating circuit 2 |
 | `1d` | Counter in HCD format | Switching cycles, operating hours |
 
 Exception: 03-013 (Supply temperature at standard outdoor temperature) has type `00`, but the raw value must be divided by 2
@@ -81,6 +81,9 @@ In addition, there are **alias addresses** that provide the same parameters:
 
 The `638x` list is **not a double assignment** (previous assumption "expert conflict"), but a numbered list.
 
+**Alias addresses are model/firmware specific.** On other Ochsner models (e.g. GWSM 12+, TEM ID 19469) `7d85` returns 00-071 (source inlet
+temperature) instead of the switching cycles. Prefer the **schema addresses** and always check bytes 0–1 of the response.
+
 ## 4. Check Yourself
 
 1. Start `ebusd` **temporarily** with `--enablehex` (remove it afterward).
@@ -97,11 +100,14 @@ The `638x` list is **not a double assignment** (previous assumption "expert conf
 | Switching cycles, operating hours | Incorrect format (U3N/UIN) | `param6` + `HCD:4` (Hours divisor 100) |
 | `Warmwasserenergie.kWh.23.066` | Parameter is named 23-006 (Display and Header) | Renamed to `Warmwasserenergie.kWh.23.006` — **new name, possibly new entity** |
 | Operating mode heating circuit 03-050 | Enum was shifted | 0 = Standby mode, 1 = Automatic, 4 = Normal operation, 5 = Energy-saving mode, 7 = Manual heating mode (checked on the display) |
-| Hot water status 02-052 | Value 8 was missing | `8 = Bedarfsladung_Hysterese` (derived from measured data, see below) |
+| Hot water status 02-052 | Value 8 was missing | `8 = Spar_Ladebetrieb` — economy charging up to the economy DHW temperature 05-086 |
+| Hot water operating mode 05-050 | Code 5 does not exist | `0 = Keine_Ladung, 1 = Automatik, 2 = Normaltemperatur` (display; header bitmask `0x07`) |
 | Heating circuit status 02-051 | Value 23 was missing | `23 = Heizbetrieb_aktiv` |
-| Mixer heating circuit 2 (01-021) | No position value | Command signal (idle 0, short pulse 156) |
+| Mixer heating circuit 2 (01-021) | No position value; read as `UCH` → 156 | Signed command (template `mischer` = `SCH`): +100 = open, 0 = hold, **−100 = close** (raw `0x9c`) |
 | Date 02-070 | ebusd type `DAY` shows +1 day | Ochsner counts from 1, not from 0; display shows correct value. Do not write date via ebusd |
-| new | | Operating mode heating circuit 2, setpoint system 01-096, heating output 02-040 / 02-041 (−100.0 = not available), pump heating circuit 2 |
+| new | | Operating mode heating circuit 2, setpoint system 01-096, heating output 02-040 / 02-041 (−100.0 = not available), pump heating circuit 2, manual setpoint 07-009 HKR1/HKR2 |
+| Heating output 02-040 / 02-041 | Unit kW doubtful | Values move in steps of 5 between −100 and +100, 02-041 = 100 while charging DHW → probably a demand in %. Unconfirmed |
+| Write messages | Unverified, unprotected, enums with wrong length in other configs | Removed from `gmww11plus.csv`; protected file `configuration/ochsner_write/` (section 10) |
 
 **Changed message names (this creates new entities in Home Assistant):**
 
@@ -122,7 +128,16 @@ The `638x` list is **not a double assignment** (previous assumption "expert conf
   charge.
 - **Electric Heating Element in the Tank:** If it is switched on externally, the domestic hot water temperature increases without the
   heat pump reporting a charging status.
-- **Heat Pump Clock:** No time synchronization; drifts (here ≈ 7 minutes ahead).
+- **Hot water priority = "Zwangsdrosselung":** While the DHW tank is charged, both heating circuits report status 6 `Zwangsdrosselung`,
+  their pumps switch off, the mixer of heating circuit 2 closes (−100), 01-066 (DHW with heat pump) = on and 02-041 = 100. This happens on
+  every DHW charge (recharge, priority contact, high demand e.g. showering) and is normal.
+- **Heat pump status 02-053 stays "Heizbetrieb" during DHW charging** — it only means "compressor running". Room heating and DHW can
+  only be told apart by 01-066 / hot water status 02-052.
+- **Hot water operating mode:** In `Automatik` the DHW setpoint 05-051 ("Normaltemperatur") is **not** active (the active setpoint
+  01-004 stays at the time-program value). Only operating mode `2 = Normaltemperatur` makes 05-051 active.
+  **Legionella protection via eBUS:** set 05-051 = 60 **and** 05-050 = Normaltemperatur → charge starts within seconds, 01-004 = 60;
+  when 60 °C is reached, **set both back** (Automatik, previous setpoint) — otherwise the tank is kept at 60 °C permanently.
+- **Heat Pump Clock:** No time synchronization; drifts (≈ 3 min per month). Can be set via eBUS (section 10, hours:minutes only).
 
 ## 7. eBUS Adapter Shield C6 to USB
 
@@ -135,6 +150,12 @@ The `638x` list is **not a double assignment** (previous assumption "expert conf
 - "Plain protocol" is not suitable via USB (ebusd would have to arbitrate itself).
 - Use a USB **data** cable; a charging cable only supplies power to the adapter.
 - Protect the adapter's web interface with a username and password; in USB mode, the TCP port 9999 is closed.
+- **Do not test field definitions on the running daemon** (`ebusctl encode/decode/define`, `read -def` with invalid definitions):
+  ebusd 26.1 wrote the error text (`temporary:2: ERR: …`) to the adapter's USB port (adapter log: `ebus: invalid plain …`),
+  after which no own query could be sent any more. Check definitions offline: `ebusd --checkconfig --dumpconfig=json -c <test dir>`.
+- **Recovery when every own query fails** (`arbitration won in invalid state`, `read timeout during send command`) although
+  passive receiving works: **stop ebusd → restart the adapter → wait until it is in the WLAN → start ebusd.** Restarting the
+  adapter while ebusd keeps running is not enough (ebusd reopens it during boot).
 
 ## 8. Example Integration (FHEM) — Not part of the eBUS decoding
 
@@ -222,6 +243,43 @@ The `638x` list is **not a double assignment** (previous assumption "expert conf
 | 03-050 | HKR2 | Operating mode heating HKR2 (0 Standby, 1 Automatic, 4 Normal, 5 Economy, 7 Manual) | `03b2004a` | `Betriebswahl.HKR2.03.050` |  | verified |
 | 03-051 | HKR2 | Room setpoint day HKR2 (Alias 6386000a) | `03b3004a` | (not polled) | °C | verified |
 | 03-053 | HKR2 | Room setpoint night HKR2 (Alias 6387000a) | `03b5004a` | (not polled) | °C | verified |
-| 07-009 | HKR2 | Setpoint manual operation HKR2 (Alias 6780000a) | `0789004a` | (not polled) | °C | verified |
+| 07-009 | HKR2 | Setpoint manual operation HKR2 (Alias 6780000a; controller accepts 1–90 °C) | `0789004a` | `Solltemp.Handbetrieb.HKR2.07.009` | °C | verified, written |
+| 07-009 | HKR1 | Setpoint manual operation HKR1 (type `4d`, 1–90 °C) | `07890048` | `Solltemp.Handbetrieb.HKR1.07.009` | °C | header verified |
 
 **Only visible on the display (no numerical value via eBUS or function is inactive):** 03-044 Summer operating point, 03-045 Summer slope, 03-054 / 03-056 Room temperature day/night (each "–.–"), 05-004 Legionella protection ("–.–"), 04-005 Function name, 04-086 Design variant, 04-089 Date of commissioning (example: 01.01.2016), 04-090 Device identification (example: 12345678), 04-092 Software version (5.98), 04-093 Hardware version (3.03), 04-095 System operator (example: "Ochsner Freak"), 04-096 Installer, 04-097 Planner.
+
+## 10. Writing to the Heat Pump (verified 2026-11)
+
+> eBUS has **no authentication and no plausibility check**. The controller accepts what it gets (another user ended up with a DHW
+> setpoint of −17.5 °C after a wrong data type). Write only what you have verified, in the exact format, within checked limits.
+
+**Telegram format** (captured with `ebusctl grab` while changing values on the control panel, which is master `01`):
+`QQ 10 06 23 06 <ID 4 bytes> <value 2 bytes, little endian>` — destination `10`, command `0623` (reading uses `15` / `0621`).
+
+| Parameter | Bus ID | Panel telegram value | Note |
+|---|---|---|---|
+| Manual setpoint HKR2 07-009 | `0789004a` | 30.0 → `2c01`, 30.5 → `3101` | step 0.5 °C on the panel |
+| Operating mode HKR2 03-050 | `03b2004a` | Automatik `0100`, manual `0700` | **enums are 2 bytes (UIN)** — `UCH` used in other configs is wrong |
+| DHW setpoint 05-051 | `05b3004e` | 43 → `ae01`, 44 → `b801` | step 1 °C on the panel |
+
+**Protection layers used here** (`configuration/ochsner_write/gmww11plus_write.csv`, `acl.example`):
+
+1. **Whitelist** — only 7 write messages: operating mode HKR1/HKR2 (only 0 Standby, 1 Automatik, 7 manual), manual setpoint
+   HKR1/HKR2, DHW setpoint, DHW operating mode (0/1/2), clock. No heating curve, no limits, no date.
+2. **Value lists instead of ranges** — ebusd 26.1 enforces min/max of the `range` column but **ignores the step**
+   (in a test, 30.3 was sent although `10-34:0.5` was configured). Value lists (`100=10.0;105=10.5;…`) are checked strictly:
+   only listed names are written; everything else fails with `ERR: element not found` **before** anything is sent.
+   The `range` column only works in the message file itself (own header line), not in `_templates.csv`.
+3. **Access level** — circuit `ochsner#write` + `--aclfile`: write messages are invisible without `auth`.
+   The ebusd MQTT client is the ACL user `mqtt`; without the level `write` an MQTT `…/set` is rejected
+   (`[mqtt error] write message … not found`).
+4. **Caller** (e.g. home automation) checks range and step again, writes one value at a time, **waits ≥ 10 s between writes**,
+   reads back and logs. On the ebusd TCP port send **one command per packet** (several lines in one packet are parsed as one command).
+
+**Tests performed** (one at a time, ≥ 10 s apart): manual setpoint 35 / 30.3 / 30 (without .0), DHW 61, operating mode 4 and
+`Normalbetrieb`, write without auth, MQTT `/set` → all rejected, nothing sent. Valid writes (DHW 60/43, DHW mode
+Normaltemperatur/Automatik, manual setpoint 30.0, clock) → sent, read back identical, confirmed on the display.
+
+**Clock 02-072:** writing `HH:MM` sets hours and minutes only; the controller's seconds keep running (residual offset < 1 min).
+Write exactly at the start of a minute, not around midnight, and only if the deviation is larger than a few minutes.
+

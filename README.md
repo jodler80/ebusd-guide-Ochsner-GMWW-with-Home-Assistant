@@ -5,6 +5,14 @@ This guide contains links to various websites. The operators themselves are resp
 I do not receive any compensation or payment for any of these links.
 
 ##
+**11/2026: Writing verified - protected write configuration.**
+The unverified write lines were removed from `gmww11plus.csv`. Writes now live in [configuration/ochsner_write](./configuration/ochsner_write)
+(whitelist of 7 messages, strict value lists, access level via `--aclfile`); format captured from the control panel (enums are 2 bytes).
+Note: ebusd ignores the step of the `range` column - see [section 10](./docs/ochsner_tem_protocol.md#10-writing-to-the-heat-pump-verified-2026-11).
+Also: mixer HKR2 is a signed command (-100 = close), hot water operating mode codes 0/1/2, hot water status 8 = Spar_Ladebetrieb,
+manual setpoint 07-009, behaviour during hot water priority ("Zwangsdrosselung"), legionella procedure via eBUS.
+**The write messages are only usable after `auth` with a user from `--aclfile`; MQTT `/set` only if you give the ACL user `mqtt` the level `write`** - see `acl.example`.
+##
 **10/2026: Configuration verified against the OTE3 display and the TEM response header (SW 5.98).**
 `_templates.csv` now contains real template definitions; fixes for energy counters (kWh /10), switching cycles /
 operating hours (4 byte HCD), heating circuit operating mode, hot water status 8; new data points.
