@@ -161,6 +161,9 @@ temperature) instead of the switching cycles. Prefer the **schema addresses** an
 
 > This section describes only how the values can be further used in home automation. It is not necessary for the eBUS configuration itself.
 
+Complete example incl. writing, diagram and copy-paste definitions: [FHEM integration example](./fhem_integration_example.md)
+([Deutsch](./fhem_integration_example_de.md)).
+
 - `ebusd` publishes the values via MQTT under `ebusd/ochsner/<message>`; in FHEM, a `MQTT2_DEVICE` takes them over (set a fixed MQTT client ID in `ebusd`: `--mqttclientid=…`).
 - Text enums (e.g., operating mode selection) are translated back into code for databases that only store numbers using `userReadings`. Note that: FHEM checks the trigger against the entire event `Reading: Value`, so use `Betriebswahl\.Heizkreis\.03\.050:.*` as the trigger.
 
@@ -273,7 +276,7 @@ temperature) instead of the switching cycles. Prefer the **schema addresses** an
 3. **Access level** — circuit `ochsner#write` + `--aclfile`: write messages are invisible without `auth`.
    The ebusd MQTT client is the ACL user `mqtt`; without the level `write` an MQTT `…/set` is rejected
    (`[mqtt error] write message … not found`).
-4. **Caller** (e.g. home automation) checks range and step again, writes one value at a time, **waits ≥ 10 s between writes**,
+4. **Caller** (e.g. home automation, see the [FHEM module](../configuration/fhem/99_ebusWPUtils.pm)) checks range and step again, writes one value at a time, **waits ≥ 10 s between writes**,
    reads back and logs. On the ebusd TCP port send **one command per packet** (several lines in one packet are parsed as one command).
 
 **Tests performed** (one at a time, ≥ 10 s apart): manual setpoint 35 / 30.3 / 30 (without .0), DHW 61, operating mode 4 and
