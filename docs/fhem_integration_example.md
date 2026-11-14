@@ -281,7 +281,8 @@ During the charge both heating circuits report `Zwangsdrosselung` (hot water pri
 
 ## 8. Further Use in FHEM (examples)
 - **InfluxDB/Grafana:** `InfluxDBLogger` writes the readings of `ebusWP` (measurement = reading name, tag = device).
-  Enum texts as numbers via the `…Code` userReadings.
+  The logger drops text values: On/Off texts (pumps, DHW preparation) are converted by the attribute
+  `attr InfluxDB conversions …,^on$=1,^off$=0,^Ein$=1,^Aus$=0` (applies to all devices); enum texts as numbers via the `…Code` userReadings.
 - **DOIF:** e.g. control of an electric heating element depending on `[ebusWP:Warmwassertemp.aktuell.00.004]`, reset logic of the
   utility priority contact depending on buffer and flow temperatures.
 - **1-Wire sensors** (own flow/return sensors) complement the eBUS values; planned: functional devices per circuit (HKR1, HKR2, DHW, heat pump).

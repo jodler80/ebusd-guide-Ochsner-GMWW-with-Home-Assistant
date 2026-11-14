@@ -276,7 +276,8 @@ Während der Ladung melden beide Heizkreise `Zwangsdrosselung` (Warmwasser-Vorra
 
 ## 8. Weitere Nutzung in FHEM (Beispiele)
 - **InfluxDB/Grafana:** `InfluxDBLogger` schreibt die Readings von `ebusWP` (Messreihe = Reading-Name, Tag = Device).
-  Enum-Texte über die `…Code`-userReadings als Zahl.
+  Textwerte verwirft der Logger: Ein/Aus (Pumpen, WW-Bereitung) werden per Attribut umgewandelt —
+  `attr InfluxDB conversions …,^on$=1,^off$=0,^Ein$=1,^Aus$=0` (wirkt auf alle Devices); Enum-Texte über die `…Code`-userReadings als Zahl.
 - **DOIF:** z. B. Heizstab-Steuerung nach `[ebusWP:Warmwassertemp.aktuell.00.004]`, Rücksetzlogik des EVU-Kontakts nach
   Puffer- und Vorlauftemperaturen.
 - **1-Wire-Fühler** (eigene Vor-/Rückläufe) ergänzen die eBUS-Werte; geplant: Funktions-Devices je Kreis (HKR1, HKR2, WW, WP).
