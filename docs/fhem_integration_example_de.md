@@ -16,9 +16,16 @@ English version: [fhem_integration_example.md](./fhem_integration_example.md)
 | **Lesen** (blau) | ebusd pollt die WP → veröffentlicht jeden Wert per MQTT unter `ebusd/ochsner/<Nachricht>` → FHEM-Broker `MQTT2_SERVER` → `MQTT2_DEVICE ebusWP` macht daraus Readings (`readingList`) |
 | **Schreiben** (grün) | `set ebusWP <Befehl> <Wert>` → Perl-Funktion `ebusWP_Set` (Modul `99_ebusWPUtils.pm`) prüft und reiht ein → Kindprozess meldet sich an ebusd-TCP-Port 8888 an (`auth`), schreibt, liest nach 12 s zurück |
 | **gesperrt** (rot) | MQTT `ebusd/ochsner/<Nachricht>/set` — ebusd führt es nicht aus, weil der ACL-Benutzer `mqtt` kein Schreibrecht hat |
+| **Adapter-Status** (grau gepunktet) | Der Adapter meldet nur seinen **eigenen** Zustand (Laufzeit, Signal, Verbindung) per WLAN/MQTT an den Broker → eigenes MQTT2_DEVICE. Über WLAN läuft außerdem seine Weboberfläche (mit Passwort) |
 
-Warum nicht über MQTT schreiben? Der Broker ist im Heimnetz für viele Geräte offen (anonyme Clients). Über den TCP-Port mit
-Anmeldung kann nur schreiben, wer das Geheimnis kennt, und nur die freigegebenen Nachrichten mit gelisteten Werten.
+**Sicherheitskonzept**
+- **Betriebsdaten gehen nicht über WLAN:** Adapter → ebusd per USB, ebusd → Broker per `localhost` (gleicher Rechner).
+  Einschränkung: Der Broker ist im Heimnetz erreichbar (andere Geräte nutzen ihn) — MQTT-Clients dort können die Topics
+  `ebusd/…` **mitlesen**, aber nicht schreiben.
+- **Schreiben nur über `99_ebusWPUtils`** (TCP mit Anmeldung): Prüfung, Warteschlange mit ≥ 10 s Abstand, Rücklesen und
+  Protokoll stellen Timing und Datenintegrität sicher — das wäre über MQTT `/set` nicht möglich; die Zugriffskontrolle
+  (`--aclfile`) sperrt diesen Weg deshalb.
+- Der Broker ist austauschbar (hier FHEM `MQTT2_SERVER`, ebenso z. B. Mosquitto).
 
 ## 2. ebusd
 

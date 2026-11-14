@@ -17,9 +17,16 @@ German version: [fhem_integration_example_de.md](./fhem_integration_example_de.m
 | **Read** (blue) | ebusd polls the heat pump → publishes every value via MQTT as `ebusd/ochsner/<message>` → FHEM broker `MQTT2_SERVER` → `MQTT2_DEVICE ebusWP` turns them into readings (`readingList`) |
 | **Write** (green) | `set ebusWP <command> <value>` → Perl function `ebusWP_Set` (module `99_ebusWPUtils.pm`) validates and queues → a child process authenticates on the ebusd TCP port 8888 (`auth`), writes, and reads back after 12 s |
 | **Blocked** (red) | MQTT `ebusd/ochsner/<message>/set` — ebusd does not execute it because the ACL user `mqtt` has no write level |
+| **Adapter status** (grey dotted) | The adapter reports only its **own** state (uptime, signal, connection) via WLAN/MQTT to the broker → separate MQTT2_DEVICE. Its (password-protected) web UI also runs via WLAN |
 
-Why not write via MQTT? In a home network the broker is usually open to many devices (anonymous clients). Via the TCP port
-with authentication only someone who knows the secret can write — and only the released messages with listed values.
+**Security concept**
+- **Operating data do not travel via WLAN:** adapter → ebusd via USB, ebusd → broker via `localhost` (same host).
+  Limitation: the broker is reachable in the home network (other devices use it) — MQTT clients there can **read** the
+  `ebusd/…` topics, but cannot write.
+- **Writing only through `99_ebusWPUtils`** (TCP with authentication): validation, queue with ≥ 10 s spacing, read-back and
+  logging ensure timing and data integrity — this would not be possible via MQTT `/set`, so the access control
+  (`--aclfile`) blocks that path.
+- The broker is interchangeable (here FHEM `MQTT2_SERVER`, equally e.g. Mosquitto).
 
 ## 2. ebusd
 
