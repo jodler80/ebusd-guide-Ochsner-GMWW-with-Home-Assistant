@@ -29,7 +29,7 @@ r1,ochsner,Aktueller.Raumsollwert.01.001,Aktueller Raumsollwert,,,,77830008,,,pa
 r1,ochsner,Sollwert.Heizkreis.Vorlauftemp.01.002,Sollwert Heizkreis Vorlauftemperatur,,,,77850008,,,param,,,,,,tempt,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 r1,ochsner,Warmwassertemp.SOLL.aktuell.01.004,Aktueller Warmwassersollwert,,,,7982000e,,,param,,,,,,tempt,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 r1,ochsner,Status.HKR1.Pumpe.01.020,HKR1 Heizkreispumpe Status (EIN/AUS),,,,01940048,,,param,,,,,,kpstatus,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-r1,ochsner,Status.HKR2.Pumpe.01.020,HKR2 Heizkreispumpe live %,,,,7580000a,,,param,,,,,,percent,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+r1,ochsner,Status.HKR2.Pumpe.01.020,HKR2 Heizkreispumpe Status (EIN/AUS - Typ 02 laut Header),,,,7580000a,,,param,,,,,,kpstatus,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 r1,ochsner,Mischer.HKR2.01.021,HKR2 Mischer Fahrbefehl (+100 auf - 0 halten - -100 zu),,,,7581000a,,,param,,,,,,mischer,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 #HKR2 Statuswerte nach HKR1-Muster (letztes Byte 08→0a) - VERIFIKATION 2026-06-07
 r1,ochsner,Status.HKR2.02.051,Status Heizkreis 2,,,,7780000a,,,param,,,,,,hkstatus,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,

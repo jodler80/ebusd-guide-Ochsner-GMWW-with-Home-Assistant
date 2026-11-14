@@ -233,7 +233,7 @@ Complete example incl. writing, diagram and copy-paste definitions: [FHEM integr
 | 00-058 | HKR2 | Relative humidity HKR2 | `00ba004a` | – | % | no sensor (0x8000) |
 | 01-001 | HKR2 | Room setpoint HKR2 | `7783000a` | `Raumsollwert.HKR2.01.001` | °C | verified |
 | 01-002 | HKR2 | Supply temperature HKR2 setpoint | `7785000a` | `Sollwert.HKR2.Vorlauftemp.01.002` | °C | verified |
-| 01-020 | HKR2 | Heating circuit pump HKR2 (%) | `7580000a` | `Status.HKR2.Pumpe.01.020` | % | verified |
+| 01-020 | HKR2 | Heating circuit pump HKR2 (ON/OFF, type 02 - previously read as %) | `7580000a` | `Status.HKR2.Pumpe.01.020` |  | verified |
 | 01-021 | HKR2 | Mixer HKR2 - command signal (no position value) | `7581000a` | `Mischer.HKR2.01.021` |  | verified |
 | 02-020 | HKR2 | Average outside temperature HKR2 | `7782000a` | `Aussentemperatur.Mittelwert.HKR2.02.020` | °C | verified |
 | 02-051 | HKR2 | Status heating circuit control HKR2 | `7780000a` | `Status.HKR2.02.051` |  | verified |
