@@ -1,0 +1,61 @@
+// Functional diagram: Ochsner heat pump <-> eBUS <-> ebusd <-> FHEM
+// render: dot -Tpng -Gdpi=130 fhem_ebusd_schema.dot -o fhem_ebusd_schema.png
+digraph G {
+  rankdir=TB; newrank=true;
+  graph [fontname="Helvetica", fontsize=11, nodesep=0.5, ranksep=0.45, bgcolor="white",
+         label="Ochsner GMWW (OTE3) - eBUS - ebusd - FHEM   |   blue = read path   green = write path   red = blocked", labelloc=b];
+  node  [fontname="Helvetica", fontsize=10, shape=box, style="rounded,filled", fillcolor="#f4f4f4", color="#666666"];
+  edge  [fontname="Helvetica", fontsize=9, color="#666666"];
+
+  subgraph cluster_wp {
+    label="Heat pump"; style="rounded"; color="#999999";
+    ote  [label="OTE3 controller\neBUS master 10 / slave 15\nTEM protocol (read 0621, write 0623)", fillcolor="#fff3d6"];
+    panel[label="Control panel\neBUS master 01", fillcolor="#fff3d6"];
+  }
+
+  adapter [label="eBUS Adapter Shield C6 (Stick)\nUSB serial, enhanced protocol\n(WLAN stays on)", fillcolor="#e8eefc"];
+
+  subgraph cluster_pi {
+    label="Raspberry Pi"; style="rounded"; color="#999999";
+
+    subgraph cluster_ebusd {
+      label="ebusd 26.1"; style="rounded,dashed"; color="#888888";
+      cfgr [label="config ochsner/\n_templates.csv + gmww11plus.csv\n56 read messages, polling"];
+      cfgw [label="config ochsner_write/\n7 write messages (whitelist)\nvalue lists, access level 'write'", fillcolor="#e3f5e3"];
+      acl  [label="--aclfile\nusers with level 'write'\n(no entry for 'mqtt')", fillcolor="#e3f5e3"];
+      tcp  [label="TCP 8888 (--localhost)\nauth / write / read -f", fillcolor="#e3f5e3"];
+      mqttc[label="MQTT client\n--mqttclientid=ebusWP"];
+    }
+
+    broker [label="MQTT broker\n(FHEM MQTT2_SERVER :1883)", fillcolor="#e8eefc"];
+
+    subgraph cluster_fhem {
+      label="FHEM"; style="rounded,dashed"; color="#888888";
+      dev  [label="MQTT2_DEVICE ebusWP\nreadingList (topics -> readings)\nuserReadings (P_Heizung, P_Quelle, ...Code)\nsetList (7 write commands)", fillcolor="#e8eefc"];
+      util [label="99_ebusWPUtils.pm\nebusWP_Set: whitelist, range, step, enum\nlock attribute, daily limit\nqueue >= 10 s, BlockingCall\nauth - write - 12 s - read back", fillcolor="#e3f5e3"];
+      use  [label="Consumers\nInfluxDB / Grafana, DOIF, schematic\n(optional: functional dummies per circuit)"];
+      user [label="set ebusWP <command> <value>\n(FHEMWEB, DOIF, at)", shape=note, fillcolor="#ffffff"];
+    }
+  }
+
+  ote -> adapter [dir=both, label="eBUS", penwidth=2];
+  panel -> ote   [dir=both, label="eBUS"];
+  adapter -> cfgr [dir=both, label="USB  ens:/dev/serial/by-id/...", penwidth=2];
+  cfgr -> mqttc  [color="#2b6cd4", label="poll results"];
+  mqttc -> broker [color="#2b6cd4", label="ebusd/ochsner/<message>"];
+  broker -> dev  [color="#2b6cd4"];
+  dev -> use     [color="#2b6cd4"];
+
+  user -> dev    [color="#1f9d55"];
+  dev -> util    [color="#1f9d55", label="{ebusWP_Set($NAME,$EVENT)}"];
+  util -> tcp    [color="#1f9d55", label="auth fhem <secret>\nwrite -c ochsner ..."];
+  tcp -> acl     [color="#1f9d55", style=dashed, arrowhead=none];
+  tcp -> cfgw    [color="#1f9d55"];
+  cfgw -> adapter [color="#1f9d55", label="QQ 10 0623 06 <ID> <value>"];
+  util -> dev    [color="#1f9d55", style=dashed, label="Schreib_Status / Schreib_Letzter"];
+
+  broker -> mqttc [color="#d43b2b", style=dashed, label=".../set  -> rejected\n(user mqtt has no level write)", constraint=false];
+  { rank=same; cfgr; cfgw; }
+  { rank=same; tcp; mqttc; }
+  { rank=same; dev; util; }
+}

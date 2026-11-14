@@ -5,6 +5,9 @@ This guide contains links to various websites. The operators themselves are resp
 I do not receive any compensation or payment for any of these links.
 
 ##
+**11/2026: FHEM integration example** - reading via MQTT2_DEVICE, writing via an FHEM module with validation, queue and read-back:
+[English](./docs/fhem_integration_example.md) / [Deutsch](./docs/fhem_integration_example_de.md), module [`configuration/fhem/99_ebusWPUtils.pm`](./configuration/fhem/99_ebusWPUtils.pm).
+##
 **11/2026: Writing verified - protected write configuration.**
 The unverified write lines were removed from `gmww11plus.csv`. Writes now live in [configuration/ochsner_write](./configuration/ochsner_write)
 (whitelist of 7 messages, strict value lists, access level via `--aclfile`); format captured from the control panel (enums are 2 bytes).
@@ -117,6 +120,7 @@ The following steps provide a step by step guide to setup such an environment fr
 8) [Adjust ebusd](./docs/ebusd.md)
 9) [Create Home Assistant dashboard](./docs/home_assistant_dashboard.md)
 10) [ebusctl commands](./docs/ebusctl_commands.md)
+11) Optional: [FHEM integration example](./docs/fhem_integration_example.md) (instead of Home Assistant)
 11) [Ochsner TEM protocol: decoding and verified parameter list](./docs/ochsner_tem_protocol.md)
 
 #
