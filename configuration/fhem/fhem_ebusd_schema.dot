@@ -8,14 +8,14 @@ digraph G {
   // ---- frames (drawn first) ----
   f_wp    [pos="430,1022", width=4.3, height=3.45, shape=box, style="rounded,dashed", fillcolor="none", label="", color="#888888"];
   f_wp_l  [pos="430,912", label="Heat pump", shape=plaintext, style="", fontsize=11];
-  f_pi    [pos="587,312", width=15.1, height=10.9, shape=box, style="rounded", fillcolor="none", label="", color="#999999"];
+  f_pi    [pos="587,210", width=15.1, height=13.75, shape=box, style="rounded", fillcolor="none", label="", color="#999999"];
   f_pi_l  [pos="587,684", label="Raspberry Pi  (ebusd and FHEM on the same host)", shape=plaintext, style="", fontsize=11];
   f_eb    [pos="425,505", width=9.9, height=4.6, shape=box, style="rounded,dashed", fillcolor="none", label="", color="#888888"];
   f_eb_l  [pos="425,348", label="ebusd 26.1", shape=plaintext, style="", fontsize=11];
   f_mq    [pos="660,195", width=4.9, height=1.35, shape=box, style="rounded,dashed", fillcolor="none", label="", color="#888888"];
   f_mq_l  [pos="660,230", label="MQTT broker (any: FHEM MQTT2_SERVER, Mosquitto, ...)", shape=plaintext, style="", fontsize=10];
-  f_fh    [pos="587,37", width=14.4, height=2.5, shape=box, style="rounded,dashed", fillcolor="none", label="", color="#888888"];
-  f_fh_l  [pos="587,-40", label="FHEM", shape=plaintext, style="", fontsize=11];
+  f_fh    [pos="587,-69", width=14.4, height=5.45, shape=box, style="rounded,dashed", fillcolor="none", label="", color="#888888"];
+  f_fh_l  [pos="587,-252", label="FHEM", shape=plaintext, style="", fontsize=11];
 
   // ---- heat pump ----
   panel  [pos="430,1110", label="Control panel\neBUS master 01", fillcolor="#fff3d6"];
@@ -32,20 +32,29 @@ digraph G {
 
   // ---- broker + FHEM ----
   broker [pos="660,180", label="here: FHEM MQTT2_SERVER\nport 1883", fillcolor="#e8eefc", width=2.6];
-  util   [pos="200,40",  label="99_ebusWPUtils.pm\nvalidation: whitelist, range, step, enum\nlock, daily limit, queue >= 10 s\nauth - write - 12 s - read back", fillcolor="#e3f5e3", width=3.2];
+  util   [pos="200,40",  label="99_ebusWPUtils.pm  (only write path)\nvalidation: whitelist, range, step, enum\nlock, daily limit, queue >= 10 s, watchdog\nauth - write - 12 s - read back", fillcolor="#e3f5e3", width=3.3];
   dev    [pos="660,40",  label="MQTT2_DEVICE ebusWP\nreadingList / userReadings\nsetList (7 write commands)", fillcolor="#e8eefc", width=2.8];
   status [pos="1000,85", label="MQTT2_DEVICE (adapter)\nuptime, signal, connection", fillcolor="#ffffff", width=2.5];
   use    [pos="1000,-10",label="Consumers\nInfluxDB / Grafana, DOIF", width=2.5];
-  user   [pos="660,-140",label="set ebusWP <command> <value>   (FHEMWEB, DOIF, at)", shape=note, fillcolor="#ffffff", width=3.6, height=0.4];
+  user   [pos="460,-330", label="set Heizung_<circuit> <command> | override on/off   (FHEMWEB, DOIF, at)", shape=note, fillcolor="#ffffff", width=5.2, height=0.4];
 
-  note   [pos="587,-260", shape=note, fillcolor="#fffbe6", color="#b59b2b", fontsize=10, width=11.5, label=
+  // ---- 98_EBUSFUNC function blocks ----
+  f_fb    [pos="575,-150", width=13.0, height=1.2, shape=box, style="rounded,dashed", fillcolor="none", label="", color="#1f9d55"];
+  f_fb_l  [pos="575,-112", label="98_EBUSFUNC.pm - function blocks: readingMap (mirror), setMap (checked commands), overrideList (Sparbetrieb, Eigenverbrauch_Vorrang)", shape=plaintext, style="", fontsize=10];
+  fb1     [pos="215,-158", label="Heizung_HKR1\nEBUSFUNC", fillcolor="#e3f5e3", width=1.9, height=0.55];
+  fb2     [pos="445,-158", label="Heizung_HKR2\nEBUSFUNC", fillcolor="#e3f5e3", width=1.9, height=0.55];
+  fb3     [pos="675,-158", label="Heizung_WW\nEBUSFUNC", fillcolor="#e3f5e3", width=1.9, height=0.55];
+  fb4     [pos="905,-158", label="Heizung_WP\nEBUSFUNC", fillcolor="#e3f5e3", width=1.9, height=0.55];
+
+  note   [pos="587,-470", shape=note, fillcolor="#fffbe6", color="#b59b2b", fontsize=10, width=11.5, label=
 "Security concept\l\
 - Operating data never travel via WLAN: adapter -> ebusd via USB, ebusd -> broker via localhost (same host).\l\
   Note: the broker is open to the home network (other devices use it), so clients there can read the ebusd/... topics.\l\
 - Via WLAN only the adapter's own status (MQTT) and its password-protected web UI.\l\
 - Writing only through 99_ebusWPUtils (TCP with authentication): validation, queue with >= 10 s spacing, read-back and\l\
-  logging ensure timing and data integrity. MQTT /set cannot guarantee this and is blocked by the access control.\l"];
-  legend [pos="587,-345", shape=plaintext, style="", fontsize=10, label="blue = operating data (read)     green = write path     red = blocked     grey dotted = adapter status via WLAN"];
+  logging ensure timing and data integrity. MQTT /set cannot guarantee this and is blocked by the access control.\l\
+- 98_EBUSFUNC function blocks never access the bus: every command is passed on as set ebusWP ... (same checks).\l"];
+  legend [pos="587,-560", shape=plaintext, style="", fontsize=10, label="blue = operating data (read)     green = write path     red = blocked     blue+green = both directions     grey dotted = adapter status via WLAN"];
 
   // ---- edges ----
   panel -> ote    [dir=both, label="  eBUS"];
@@ -60,9 +69,13 @@ digraph G {
   wlan -> broker  [style=dotted, label="adapter status via MQTT  "];
   broker -> status [style=dotted];
 
-  user -> dev     [color="#1f9d55"];
-  dev -> util     [color="#1f9d55", label="{ebusWP_Set($NAME,$EVENT)}"];
-  util -> tcp     [color="#1f9d55", label="  auth fhem <secret>\n  write -c ochsner ..."];
+  user -> fb2     [color="#1f9d55"];
+  dev -> fb1      [dir=both, color="#2b6cd4:#1f9d55"];
+  dev -> fb2      [dir=both, color="#2b6cd4:#1f9d55"];
+  dev -> fb3      [dir=both, color="#2b6cd4:#1f9d55", label="  readingMap (read) / setMap: set ebusWP <cmd> <value> (write)"];
+  dev -> fb4      [dir=both, color="#2b6cd4:#1f9d55"];
+  dev -> util     [dir=both, color="#1f9d55", label="{ebusWP_Set($NAME,$EVENT)}\nSchreib_Status / Schreib_Letzter"];
+  util -> tcp     [dir=both, color="#1f9d55", label="  auth fhem <secret>\n  write -c ochsner ... / read -f\n  (answers, read-back)"];
   tcp -> acl      [color="#1f9d55", label="  authenticated: allowed"];
   acl -> cfgw     [color="#1f9d55"];
   cfgw -> adapter [color="#1f9d55", label="QQ 10 0623 06 <ID> <value>  "];
