@@ -1,6 +1,6 @@
 # FHEM-Integrationsbeispiel: Ochsner-Wärmepumpe (OTE3) über ebusd
 
-Stand 2026-11-14 · ebusd 26.1 · FHEM (MQTT2_SERVER / MQTT2_DEVICE) · Ochsner GMWW 10, OTE3 SW 5.98  
+Stand 2026-11-16 · ebusd 26.1 · FHEM (MQTT2_SERVER / MQTT2_DEVICE) · Ochsner GMWW 10, OTE3 SW 5.98  
 English version: [fhem_integration_example.md](./fhem_integration_example.md)
 
 > Dieses Dokument beschreibt **ein Beispiel**, wie die eBUS-Daten in FHEM genutzt werden. Für die eBUS-Konfiguration selbst
@@ -235,6 +235,8 @@ Ablauf:
 3. `BlockingCall` → Kindprozess `ebusWP_Kind`: TCP `127.0.0.1:8888`, `auth fhem <secret>`, `write -c ochsner <Nachricht> <Wert>`
    (jeder Befehl ein eigenes Paket — ebusd liest mehrere Zeilen in einem Paket als **einen** Befehl), 12 s warten, `read -f`, Vergleich.
 4. `ebusWP_Fertig` → Readings `Schreib_Status` / `Schreib_Letzter`, Log (Level 3, Fehler Level 1), nächster Auftrag.
+5. Wächter: Startet der Kindprozess nicht oder meldet er sich nie zurück (z. B. nach `reload` während eines Auftrags), wird die
+   Warteschlange nach 200 s mit `Schreib_Status: FEHLER …` freigegeben — das Schreiben kann nie dauerhaft hängen.
 
 Beispiel (zwei Befehle direkt hintereinander):
 ```
@@ -281,4 +283,24 @@ Während der Ladung melden beide Heizkreise `Zwangsdrosselung` (Warmwasser-Vorra
   Textwerte — Ein/Aus (Pumpen, WW-Bereitung) daher per `attr InfluxDB conversions …,^Ein$=1,^Aus$=0` umwandeln (wirkt auf alle Devices).
 - **DOIF:** z. B. Heizstab-Steuerung nach `[ebusWP:Warmwassertemp.aktuell.00.004]`, Rücksetzlogik des EVU-Kontakts nach
   Puffer- und Vorlauftemperaturen.
-- **1-Wire-Fühler** (eigene Vor-/Rückläufe) ergänzen die eBUS-Werte; geplant: Funktions-Devices je Kreis (HKR1, HKR2, WW, WP).
+- **1-Wire-Fühler** (eigene Vor-/Rückläufe) ergänzen die eBUS-Werte; Funktions-Devices je Kreis, siehe Abschnitt 9.
+
+## 9. Funktions-Devices mit `98_EBUSFUNC.pm`
+
+Die Werte von `ebusWP` werden mit dem Modul [`98_EBUSFUNC.pm`](../configuration/fhem/98_EBUSFUNC.pm) zu **einem Funktionsblock je Kreis**
+gebündelt (`Heizung_HKR1`, `Heizung_HKR2`, `Heizung_WW`, `Heizung_WP`):
+
+- `readingMap` spiegelt ausgewählte `ebusWP`-Readings unter kurzen Namen (z. B. `VL_Soll`, `Handsoll`, `Status`), optional formatiert.
+- `setMap` bietet geprüfte Bedienbefehle (`set Heizung_HKR2 Handsoll 22`) und gibt sie als `set ebusWP HKR2_Handsoll 22.0` weiter.
+  EBUSFUNC greift nie selbst auf den Bus zu; jedes Schreiben läuft weiter über `99_ebusWPUtils.pm` (Abschnitt 5).
+- `overrideList` definiert **Sonderfunktionen**, die Einstellungen merken, überschreiben und zurückstellen:
+  *Sparbetrieb* (z. B. Vorlauf vor Sonnenaufgang absenken) und *Eigenverbrauch_Vorrang* (PV-Überschuss: Vorlauf anheben,
+  Estrich/Puffer speichern die Wärme). Beide bilden eine Gruppe: Beim Wechsel addieren sich die Offsets nicht, beim Ausschalten
+  geht der Kreis zurück auf *Automatik*. Beim Warmwasser setzt *Eigenverbrauch_Vorrang* *Normaltemperatur* + 60 °C und stellt danach die alten Werte zurück.
+- 1-Wire-Fühler und KNX-Zustände ergänzt ein kleiner DOIF je Block (nur Anzeige).
+
+Vollständige laufende Konfiguration (Heizkreis 2 und Warmwasser): [`examples/heating_circuit_and_hot_water.cfg`](../configuration/fhem/examples/heating_circuit_and_hot_water.cfg).
+Vollständige Referenz: `help EBUSFUNC` in FHEMWEB (deutsch und englisch). Tests ohne FHEM/Bus: [`configuration/fhem/test/`](../configuration/fhem/test/).
+
+Live-Test 16.11.2026 (HKR2): Sparbetrieb an → `HKR2_Handsoll 20.0` ok, danach `HKR2_Betriebswahl Handbetrieb_Heizen` ok (10 s Abstand, rückgelesen);
+Sparbetrieb aus → `Automatik` ok.

@@ -6,7 +6,8 @@ I do not receive any compensation or payment for any of these links.
 
 ##
 **11/2026: FHEM integration example** - reading via MQTT2_DEVICE, writing via an FHEM module with validation, queue and read-back:
-[English](./docs/fhem_integration_example.md) / [Deutsch](./docs/fhem_integration_example_de.md), module [`configuration/fhem/99_ebusWPUtils.pm`](./configuration/fhem/99_ebusWPUtils.pm).
+[English](./docs/fhem_integration_example.md) / [Deutsch](./docs/fhem_integration_example_de.md), module [`configuration/fhem/99_ebusWPUtils.pm`](./configuration/fhem/99_ebusWPUtils.pm).  
+**11/2026: FHEM function blocks** - module [`98_EBUSFUNC.pm`](./configuration/fhem/98_EBUSFUNC.pm) groups the values per circuit and adds economy / PV-priority override functions; see [configuration/fhem](./configuration/fhem/README.md).
 ##
 **11/2026: Writing verified - protected write configuration.**
 The unverified write lines were removed from `gmww11plus.csv`. Writes now live in [configuration/ochsner_write](./configuration/ochsner_write)

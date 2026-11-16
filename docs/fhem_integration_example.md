@@ -1,6 +1,6 @@
 # FHEM Integration Example: Ochsner Heat Pump (OTE3) via ebusd
 
-As of 2026-11-14 · ebusd 26.1 · FHEM (MQTT2_SERVER / MQTT2_DEVICE) · Ochsner GMWW 10, OTE3 SW 5.98  
+As of 2026-11-16 · ebusd 26.1 · FHEM (MQTT2_SERVER / MQTT2_DEVICE) · Ochsner GMWW 10, OTE3 SW 5.98  
 German version: [fhem_integration_example_de.md](./fhem_integration_example_de.md)
 
 
@@ -240,6 +240,8 @@ Flow:
 3. `BlockingCall` → child process `ebusWP_Kind`: TCP `127.0.0.1:8888`, `auth fhem <secret>`, `write -c ochsner <message> <value>`
    (each command in its own packet — ebusd reads several lines in one packet as **one** command), wait 12 s, `read -f`, compare.
 4. `ebusWP_Fertig` → readings `Schreib_Status` / `Schreib_Letzter`, log (level 3, errors level 1), next job.
+5. Watchdog: if the child process does not start or never reports back (e.g. after a `reload` during a job), the queue is released
+   after 200 s with `Schreib_Status: FEHLER …` — writing can never hang permanently.
 
 Example (two commands directly one after the other):
 ```
@@ -286,4 +288,24 @@ During the charge both heating circuits report `Zwangsdrosselung` (hot water pri
   text values — convert On/Off texts (pumps, DHW preparation) with `attr InfluxDB conversions …,^Ein$=1,^Aus$=0` (applies to all devices).
 - **DOIF:** e.g. control of an electric heating element depending on `[ebusWP:Warmwassertemp.aktuell.00.004]`, reset logic of the
   utility priority contact depending on buffer and flow temperatures.
-- **1-Wire sensors** (own flow/return sensors) complement the eBUS values; planned: functional devices per circuit (HKR1, HKR2, DHW, heat pump).
+- **1-Wire sensors** (own flow/return sensors) complement the eBUS values; functional devices per circuit, see section 9.
+
+## 9. Functional Devices with `98_EBUSFUNC.pm`
+
+The values of `ebusWP` are grouped into one **function block per circuit** with module
+[`98_EBUSFUNC.pm`](../configuration/fhem/98_EBUSFUNC.pm) (`Heizung_HKR1`, `Heizung_HKR2`, `Heizung_WW`, `Heizung_WP`):
+
+- `readingMap` mirrors selected `ebusWP` readings under short names (e.g. `VL_Soll`, `Handsoll`, `Status`), optionally formatted.
+- `setMap` offers checked operating commands (`set Heizung_HKR2 Handsoll 22`) and passes them on as `set ebusWP HKR2_Handsoll 22.0`.
+  EBUSFUNC never accesses the bus itself; every write still goes through `99_ebusWPUtils.pm` (section 5).
+- `overrideList` defines **override functions** that remember settings, override them and restore them:
+  *Sparbetrieb* (economy, e.g. lower flow before sunrise) and *Eigenverbrauch_Vorrang* (PV surplus: raise the flow,
+  screed/buffer store the heat). Both belong to one group: switching between them does not add up offsets, switching off returns
+  the circuit to *Automatik*. For hot water, *Eigenverbrauch_Vorrang* sets *Normaltemperatur* + 60 °C and restores the previous values.
+- 1-wire sensors and KNX states are added to the blocks by a small DOIF (display only).
+
+Complete running configuration (heating circuit 2 and hot water): [`examples/heating_circuit_and_hot_water.cfg`](../configuration/fhem/examples/heating_circuit_and_hot_water.cfg).
+Full reference: `help EBUSFUNC` in FHEMWEB (English and German). Tests without FHEM/bus: [`configuration/fhem/test/`](../configuration/fhem/test/).
+
+Live test 2026-11-16 (HKR2): economy on → `HKR2_Handsoll 20.0` ok, then `HKR2_Betriebswahl Handbetrieb_Heizen` ok (10 s apart, read back);
+economy off → `Automatik` ok.
